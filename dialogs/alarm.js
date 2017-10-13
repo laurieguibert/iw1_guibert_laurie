@@ -30,6 +30,8 @@ library.dialog('menu', [
 ]).triggerAction({
     matches: /^menu$/i,
     confirmPrompt: "Voulez-vous retourner au menu ?"
+}).endConversationAction('endConversationAction', 'Ok, au revoir !', {
+    matches: /^goodbye$/i
 });
 
 library.dialog('createAlarm', [
@@ -85,14 +87,12 @@ library.dialog('showAlarm', [
                             //botbuilder.CardAction.dialogAction(session, 'detailsAlarm', index, "Détails")
                         ])
                 ]);
+                session.send(msg).endDialog();
             }
         }
         if(count === 0){
             session.send("Pas d'alarme active");
             session.beginDialog('menu');
-        }else{
-            session.send("Affichage des alarmes actives");
-            session.send(msg);
         }
     }
 ])
@@ -104,12 +104,14 @@ library.dialog('showAlarm', [
 
 library.dialog('listAlarm', [
     function(session){
+        var count = 0;
         for(var index in session.userData.alarm) { 
             var alarm = session.userData.alarm[index];
             var timestamp = new Date(alarm.alarmDate).getTime();
             var date = new Date(alarm.alarmDate);
             var createdAt = new Date(alarm.createdAt);
             if(timestamp <= Date.now()){
+                count ++;
                 var msg = new botbuilder.Message(session);
                 msg.attachmentLayout(botbuilder.AttachmentLayout.carousel)
                 msg.attachments([
@@ -121,6 +123,10 @@ library.dialog('listAlarm', [
                 session.send(msg).endDialog();
             };
         };
+        if(count === 0){
+            session.send("Pas d'alarme historisée");
+            session.beginDialog('menu');
+        }
     }
 ])
 .cancelAction('cancelAction', 'Ok, annulation de l\'affichage des alarmes terminées.', {
