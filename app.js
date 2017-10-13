@@ -24,6 +24,7 @@ server.post('/api/messages', connector.listen());
 var bot = new botbuilder.UniversalBot(connector, [
     function(session){
         session.send("Bienvenue dans le bot de gestion des alarmes.");
+        session.userData.alarm = new Array();
         session.beginDialog('alarme:menu');
     }
 ]);
