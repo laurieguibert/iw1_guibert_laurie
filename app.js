@@ -1,5 +1,5 @@
 /**
- * Created by lguib on 12/09/2017.
+ * Created by lguib on 11/10/2017.
  */
 var restify = require('restify');
 var botbuilder = require ('botbuilder');
@@ -21,55 +21,11 @@ var connector = new botbuilder.ChatConnector({
 server.post('/api/messages', connector.listen());
 
 // Reply by echoing
-var bot = new botbuilder.UniversalBot(connector, function(session){
-    //session.send('you have tapped : ${session.message.text} | [length : ${session.message.text.length}');
-    session.send(`Vous avez écrit : %s | [longueur du texte : %s]`, session.message.text, session.message.text.length);
-    /*session.send(JSON.stringify(session.dialogData));
-    session.send(JSON.stringify(session.sessionState));
-    session.send(JSON.stringify(session.conversationData));
-    session.send(JSON.stringify(session.userData));*/
+var bot = new botbuilder.UniversalBot(connector, [
+    function(session){
+        session.send("Bienvenue dans le bot de gestion des alarmes.");
+        session.beginDialog('alarme:menu');
+    }
+]);
 
-    bot.on('typing', function(){
-        session.send("Utilisateur en train decrire");
-    });
-
-    bot.on('conversationUpdate', function(message) {
-        if(message.membersAdded && message.membersAdded.length > 0){
-            var membersAdded = message.membersAdded
-            .map(function(x){
-                var isSelf = x.id === message.address.bot.id;
-                return (isSelf ? message.address.bot.name : x.name) || ' ' + '(Id = ' + x.id + ')'
-            })
-            .join(', ');
-            bot.send(new botbuilder.Message()
-            .address(message.address)
-            .text('Bienvenue ' + membersAdded));
-        }
-
-        if(message.membersRemoved && message.membersRemoved.length > 0){
-            var membersRemoved = message.membersRemoved
-            .map(function(x){
-                var isSelf = x.id === message.address.bot.id;
-                return (isSelf ? message.address.bot.id : x.id) || ' ' + '(Id = ' + x.id + ')'
-            })
-            .join(', ');
-            bot.send(new botbuilder.Message()
-            .address(message.address)
-            .text('Au revoir ' + membersRemoved));
-        }
-    });
-
-    bot.on('contactRelationUpdate', function(message){
-        if(message.action === 'add'){
-            var response = 'Bienvenue ';
-        }
-
-        if(message.action === 'remove'){
-            var response = 'Au revoir ';
-        }
-
-        bot.send(new botbuilder.Message()
-        .address(message.address)
-        .text(response + message.address.bot.name + '-' + message.address.bot.id));
-    })
-});
+bot.library(require('./dialogs/alarm.js'));
