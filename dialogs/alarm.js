@@ -89,6 +89,7 @@ library.dialog('showAlarm', [
         }
         if(count === 0){
             session.send("Pas d'alarme active");
+            session.beginDialog('menu');
         }else{
             session.send("Affichage des alarmes actives");
             session.send(msg);
