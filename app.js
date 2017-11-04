@@ -1,5 +1,5 @@
 /**
- * Created by lguib on 12/09/2017.
+ * Created by lguib on 04/11/2017.
  */
 var restify = require('restify');
 var botbuilder = require ('botbuilder');
@@ -20,56 +20,35 @@ var connector = new botbuilder.ChatConnector({
 // Listening for user inputs
 server.post('/api/messages', connector.listen());
 
-// Reply by echoing
-var bot = new botbuilder.UniversalBot(connector, function(session){
-    //session.send('you have tapped : ${session.message.text} | [length : ${session.message.text.length}');
-    session.send(`Vous avez écrit : %s | [longueur du texte : %s]`, session.message.text, session.message.text.length);
-    /*session.send(JSON.stringify(session.dialogData));
-    session.send(JSON.stringify(session.sessionState));
-    session.send(JSON.stringify(session.conversationData));
-    session.send(JSON.stringify(session.userData));*/
 
-    bot.on('typing', function(){
-        session.send("Utilisateur en train decrire");
-    });
+var bot = new botbuilder.UniversalBot(connector, 
+    function(session) {
+        session.send("Pending waterfall ...");
+    }
+);
 
-    bot.on('conversationUpdate', function(message) {
-        if(message.membersAdded && message.membersAdded.length > 0){
-            var membersAdded = message.membersAdded
-            .map(function(x){
-                var isSelf = x.id === message.address.bot.id;
-                return (isSelf ? message.address.bot.name : x.name) || ' ' + '(Id = ' + x.id + ')'
-            })
-            .join(', ');
-            bot.send(new botbuilder.Message()
-            .address(message.address)
-            .text('Bienvenue ' + membersAdded));
+// intégration de Luis
+var luisEndpoint = "https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/24bea1f2-e983-444e-a4df-0e7b1550e9e7?subscription-key=f719bb9a24e9498eab3e9156b41acdb5&verbose=true&timezoneOffset=0"
+var luisRecognizer = new botbuilder.LuisRecognizer(luisEndpoint);
+bot.recognizer(luisRecognizer);
+
+bot.dialog('Weather', [
+    function(session, args, next){
+        var intent = args.intent;
+        console.log(intent.intent);
+        if(intent.intent === 'Weather.GetCondition' || intent.intent === 'Weather.GetForecast'){
+            var location = botbuilder.EntityRecognizer.findEntity(intent.entities, 'Weather.Location');
         }
-
-        if(message.membersRemoved && message.membersRemoved.length > 0){
-            var membersRemoved = message.membersRemoved
-            .map(function(x){
-                var isSelf = x.id === message.address.bot.id;
-                return (isSelf ? message.address.bot.id : x.id) || ' ' + '(Id = ' + x.id + ')'
-            })
-            .join(', ');
-            bot.send(new botbuilder.Message()
-            .address(message.address)
-            .text('Au revoir ' + membersRemoved));
+        
+        if(intent.intent === 'Weather.GetCondition'){
+            session.send(`il fait vraiment beau à ${location.entity}`);
+        } else if(intent.intent === 'Weather.GetForecast'){
+            session.send(`il ne fait pas vraiment beau à ${location.entity}`);
         }
-    });
-
-    bot.on('contactRelationUpdate', function(message){
-        if(message.action === 'add'){
-            var response = 'Bienvenue ';
-        }
-
-        if(message.action === 'remove'){
-            var response = 'Au revoir ';
-        }
-
-        bot.send(new botbuilder.Message()
-        .address(message.address)
-        .text(response + message.address.bot.name + '-' + message.address.bot.id));
-    })
-});
+    }
+]).triggerAction({
+    matches : ["Weather.GetCondition", "Weather.GetForecast"]
+}).cancelAction('CancelWeather', 'request canceled !', {
+    matches : /^(cancel|abandon)/i,
+    confirmPrompt:'Are you sure ?'
+})
